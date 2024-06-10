@@ -6,7 +6,7 @@
 
 ### 1. Run the program by Double clicking the Utube_gui.exe
 
-#### 2. Or runing it on your cmd or code editor :
+### 2. Or runing it on your cmd or code editor :
 
 ### 3. Create a virtual environement :
 
