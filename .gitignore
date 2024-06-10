@@ -1,3 +1,10 @@
+# Ignore build, dist and other unecessary files:
+utube_ui.spec
+Utube_resquirements/
+dist/
+build/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
