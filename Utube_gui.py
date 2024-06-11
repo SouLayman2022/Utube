@@ -1,10 +1,23 @@
 import os
+import sys
 import webbrowser
 from tkinter import Tk, Label, Button, filedialog, Entry, StringVar, PhotoImage, messagebox
 from tkinter import ttk
 from PIL import Image, ImageTk
 from pytube import Playlist, YouTube
 import threading
+
+CONFIG_FILE = 'config.txt'
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 def open_link(url):
     webbrowser.open_new(url)
@@ -33,15 +46,18 @@ def browse_folder():
     folder_path.set(folder_selected)
 
 def start_download():
-    playlist_url = url_entry.get()
+    url = url_entry.get()
     output_path = folder_path.get()
-    if playlist_url and output_path:
+    if url and output_path:
         progress_bar['value'] = 0
         progress_label.config(text="")
-        threading.Thread(target=download_playlist, args=(playlist_url, output_path)).start()
+        if 'playlist' in url:
+            threading.Thread(target=download_playlist, args=(url, output_path)).start()
+        else:
+            threading.Thread(target=download_video, args=(url, output_path, lambda title: update_progress(1, 1, title))).start()
     else:
-        if not playlist_url:
-            messagebox.showerror("Input Error", "Please provide a playlist URL.")
+        if not url:
+            messagebox.showerror("Input Error", "Please provide a playlist or video URL.")
         if not output_path:
             messagebox.showerror("Input Error", "Please select a folder to save the downloaded videos.")
 
@@ -56,26 +72,56 @@ def update_progress(current, total, message):
     progress_label.config(text=f"{message}\nDownloaded {current} of {total} videos")
     root.update_idletasks()
 
+def change_user_image():
+    file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")])
+    if file_path:
+        save_user_image_path(file_path)
+        load_user_image(file_path)
+
+def save_user_image_path(path):
+    with open(CONFIG_FILE, 'w') as file:
+        file.write(path)
+
+def load_user_image(path):
+    new_image = Image.open(path)
+    new_image = new_image.resize((120, 120))
+    new_photo = ImageTk.PhotoImage(new_image)
+    user_label.config(image=new_photo)
+    user_label.image = new_photo  # Keep a reference to avoid garbage collection
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, 'r') as file:
+            path = file.readline().strip()
+            if os.path.exists(path):
+                load_user_image(path)
+            else:
+                load_user_image(resource_path("Assets/SoSo.png"))
+    else:
+        load_user_image(resource_path("Assets/SoSo.png"))
+
 # Initialize the main window
 root = Tk()
 root.title("YouTube Playlist Downloader")
 root.geometry("500x400")  # Increased height to accommodate links
 
 # Set the window icon (favicon)
-icon_image = ImageTk.PhotoImage(file="./Assets/Fave_icon.ico")  # Replace with the actual path to your icon
+icon_image = ImageTk.PhotoImage(file=resource_path("Assets/Fave_icon.ico"))
 root.iconphoto(False, icon_image)
 
 # Placeholder for user image
-user_image = Image.open("./Assets/SoSo.png")  # Replace with the actual path
-user_image = user_image.resize((120, 120))
-user_photo = ImageTk.PhotoImage(user_image)
-
-user_label = Label(root, image=user_photo)
-user_label.image = user_photo  # Keep a reference to avoid garbage collection
+user_label = Label(root)
 user_label.grid(row=0, column=0, padx=10, pady=10)
 
+# Load the user image from config or default
+load_config()
+
+# Button to change user image
+change_image_button = Button(root, text="Change User Image", command=change_user_image)
+change_image_button.grid(row=1, column=0, padx=10, pady=10)
+
 # Placeholder for program logo
-program_logo = Image.open("./Assets/Logo.png")  # Replace with the actual path
+program_logo = Image.open(resource_path("Assets/Logo.png"))
 program_logo = program_logo.resize((280, 120))
 logo_photo = ImageTk.PhotoImage(program_logo)
 
@@ -86,29 +132,29 @@ logo_label.grid(row=0, column=1, padx=10, pady=10, sticky='e')
 # Folder selection button
 folder_path = StringVar()
 folder_button = Button(root, text="Select Folder", command=browse_folder)
-folder_button.grid(row=1, column=0, padx=10, pady=10)
+folder_button.grid(row=2, column=0, padx=10, pady=10)
 
 # URL entry and download button
 url_entry = Entry(root, width=50)
-url_entry.grid(row=1, column=1, padx=10, pady=10, sticky='w')
+url_entry.grid(row=2, column=1, padx=10, pady=10, sticky='w')
 
-download_button = Button(root, text="Download Playlist", command=start_download)
-download_button.grid(row=1, column=1, padx=10, pady=10, sticky='e')
+download_button = Button(root, text="Download", command=start_download)
+download_button.grid(row=2, column=1, padx=10, pady=10, sticky='e')
 
 # Progress bar and label
 progress_bar = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
-progress_bar.grid(row=2, column=0, columnspan=2, padx=10, pady=20)
+progress_bar.grid(row=3, column=0, columnspan=2, padx=10, pady=20)
 
 progress_label = Label(root, text="")
-progress_label.grid(row=3, column=0, columnspan=2)
+progress_label.grid(row=4, column=0, columnspan=2)
 
 # Add links
 github_label = Label(root, text="My GitHub", fg="blue", cursor="hand2")
-github_label.grid(row=4, column=0, padx=10, pady=5)
+github_label.grid(row=5, column=0, padx=10, pady=5)
 github_label.bind("<Button-1>", lambda e: open_link("https://github.com/SouLayman2022"))
 
 linkedin_label = Label(root, text="My LinkedIn", fg="blue", cursor="hand2")
-linkedin_label.grid(row=4, column=1, padx=10, pady=5)
+linkedin_label.grid(row=5, column=1, padx=10, pady=5)
 linkedin_label.bind("<Button-1>", lambda e: open_link("https://www.linkedin.com/in/soulayman-el-guasmi-13b890240/"))
 
 # Start the GUI loop

@@ -1,5 +1,4 @@
-from pytube import Playlist
-from pytube import YouTube
+from pytube import Playlist, YouTube
 from tqdm import tqdm
 import os
 
@@ -21,7 +20,13 @@ def download_playlist(playlist_url, output_path):
     for video_url in tqdm(playlist.video_urls, desc="Downloading videos"):
         download_video(video_url, output_path)
 
+def start_download(url, output_path):
+    if 'playlist' in url:
+        download_playlist(url, output_path)
+    else:
+        download_video(url, output_path)
+
 if __name__ == "__main__":
-    playlist_url = input("Enter the YouTube playlist URL: ")
+    url = input("Enter the YouTube playlist or video URL: ")
     output_path = input("Enter the directory where you want to save the videos: ")
-    download_playlist(playlist_url, output_path)
+    start_download(url, output_path)
