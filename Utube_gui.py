@@ -51,10 +51,18 @@ def start_download():
     if url and output_path:
         progress_bar['value'] = 0
         progress_label.config(text="")
-        if 'playlist' in url:
-            threading.Thread(target=download_playlist, args=(url, output_path)).start()
-        else:
-            threading.Thread(target=download_video, args=(url, output_path, lambda title: update_progress(1, 1, title))).start()
+        if 'list=' in url:  # Check if the URL is a playlist
+            try:
+                playlist = Playlist(url)
+                threading.Thread(target=download_playlist, args=(url, output_path)).start()
+            except Exception as e:
+                messagebox.showerror("Input Error", f"Failed to recognize playlist URL. Error: {str(e)}")
+        else:  # Treat it as a video
+            try:
+                yt = YouTube(url)
+                threading.Thread(target=download_video, args=(url, output_path, lambda title: update_progress(1, 1, title))).start()
+            except Exception as e:
+                messagebox.showerror("Input Error", f"Failed to recognize video URL. Error: {str(e)}")
     else:
         if not url:
             messagebox.showerror("Input Error", "Please provide a playlist or video URL.")
